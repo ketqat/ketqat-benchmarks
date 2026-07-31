@@ -16,7 +16,13 @@ decoders = [
   "sinter>=1.14",
   "pymatching>=2.2",
   "beliefmatching>=0.1",
-  "tesseract-decoder>=0.1",
+  # Every published tesseract-decoder is a pre-release (0.1.1.devNNNNNNNN); there has never
+  # been a stable one. `>=0.1` therefore resolves to nothing on pip 25 and earlier, which
+  # excludes pre-releases from a specifier that does not mention one. Newer pip falls back
+  # to pre-releases when no stable version exists, which is why this was invisible: the
+  # editable install worked on machines that already had it, and the first clean install on
+  # a runner failed outright. A dev-segment specifier is the accurate statement.
+  "tesseract-decoder>=0.1.1.dev0",
   "numpy>=1.24",
 ]
 

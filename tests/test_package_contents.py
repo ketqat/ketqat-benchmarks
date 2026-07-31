@@ -192,3 +192,27 @@ assert any("not publishable" in f for f in check(mutate(publishable=False)))
 assert any("no paired comparisons" in f for f in check(mutate(paired_comparisons=[])))
 """,
     )
+
+
+def test_the_declared_decoder_dependencies_are_installable_as_written() -> None:
+    """A specifier that resolves to nothing on the pip a runner happens to have.
+
+    Every published `tesseract-decoder` is a pre-release (`0.1.1.devNNNNNNNN`); there has
+    never been a stable one. `>=0.1` excludes pre-releases on pip 25 and earlier, so the
+    declared extra was uninstallable in a clean environment -- invisible for as long as
+    installs were `-e .` on machines that already had it.
+
+    Checked by reading the specifier rather than by resolving it, because resolution needs
+    the network and a test that quietly skips offline is not a gate.
+    """
+    import tomllib
+
+    with (ROOT / "pyproject.toml").open("rb") as handle:
+        declared = tomllib.load(handle)["project"]["optional-dependencies"]["decoders"]
+
+    tesseract = [item for item in declared if item.startswith("tesseract-decoder")]
+    assert tesseract, "the decoders extra no longer declares tesseract-decoder"
+    assert "dev" in tesseract[0], (
+        f"{tesseract[0]!r} admits no pre-release, and tesseract-decoder has published nothing "
+        "else. pip 25 and earlier resolve this to nothing."
+    )
