@@ -19,6 +19,9 @@ here so `ketqat-sdk` stays zod-only.
 - `is_demo` and `publishable` are **derived**, not asserted. A missing decoder is
   recorded as not run, never a row of zeros.
 - Superseded results stay in `results/` with a marker; never overwrite or delete them.
+- **The wheel carries `suites/`, `results/` and `CITATION.cff`**, force-included under the
+  package directory. A wheel with only the harness does not deliver the reason this
+  repository exists, and an editable install cannot tell you the difference (#6).
 
 ## Commands
 
@@ -26,5 +29,9 @@ here so `ketqat-sdk` stays zod-only.
 python -m pip install -e ".[decoders]" pytest
 python -m pytest tests -q
 python -m ketqat_benchmarks.decoder_comparison --distance 3 --rounds 3 --noise 0.02 --max-shots 20000 --output out.json
-python scripts/assert_three_decoders.py out.json
+ketqat-benchmarks-gate out.json                  # or: python scripts/assert_three_decoders.py out.json
+
+# What a user actually gets. `-e .` resolves every path from the source tree, so it cannot
+# tell you whether the suites, results, citation and gate are in the package (#6).
+python -m build --outdir dist-release .
 ```

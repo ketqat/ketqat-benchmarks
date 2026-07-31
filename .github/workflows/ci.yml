@@ -12,10 +12,50 @@ jobs:
       - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         with: { python-version: "3.12" }
       - name: Install with real decoders
-        run: python -m pip install -e ".[decoders]" pytest
+        run: python -m pip install -e ".[decoders]" pytest build
       - name: Tests
+        # tests/test_package_contents.py builds a wheel and reads it. The editable
+        # install above is what hid #6: every path resolves from the source tree
+        # whether or not it is packaged.
         run: python -m pytest tests -q
       - name: A real three-decoder comparison must run
         run: |
           python -m ketqat_benchmarks.decoder_comparison --distance 3 --rounds 3 --noise 0.02 --max-shots 2000 --output /tmp/cmp.json
           python scripts/assert_three_decoders.py /tmp/cmp.json
+
+  # The job above proves the science from a source checkout. This one proves the
+  # *package*: build it, install only that into a fresh environment, and run the whole
+  # thing with the repository nowhere on the path. #6 shipped because no job did this.
+  clean-room:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with: { python-version: "3.12" }
+      - name: Build the wheel and the sdist
+        run: |
+          python -m pip install --quiet build
+          python -m build --outdir dist-release .
+      - name: Install only the built wheel, in a fresh environment
+        run: |
+          python -m venv /tmp/cleanroom
+          /tmp/cleanroom/bin/pip install --quiet "$(ls dist-release/*.whl)[decoders]"
+      - name: Run from the install, with the checkout off the path
+        run: |
+          cd /tmp
+          /tmp/cleanroom/bin/python -c "import ketqat_benchmarks, pathlib; \
+            p = pathlib.Path(ketqat_benchmarks.__file__).resolve(); \
+            assert 'site-packages' in str(p), f'resolved to the source tree: {p}'; \
+            print('package:', p)"
+          /tmp/cleanroom/bin/python -m ketqat_benchmarks.decoder_comparison \
+            --distance 3 --rounds 3 --noise 0.02 --max-shots 2000 --output /tmp/cleanroom.json
+          # The gate as an installed command, not as a script beside the checkout.
+          /tmp/cleanroom/bin/ketqat-benchmarks-gate /tmp/cleanroom.json
+      - name: The install must carry the suites, the results and the citation
+        run: |
+          cd /tmp
+          /tmp/cleanroom/bin/python -c "from ketqat_benchmarks import data; \
+            suites = data.list_suites(); results = data.list_results(); \
+            assert len(suites) >= 6, suites; assert 'd3-r3-p02-v2.json' in results, results; \
+            assert data.citation_path().is_file(); \
+            print(len(suites), 'suites,', len(results), 'results, citable')"
