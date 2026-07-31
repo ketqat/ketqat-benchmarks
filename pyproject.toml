@@ -20,5 +20,20 @@ decoders = [
   "numpy>=1.24",
 ]
 
+[project.scripts]
+# The gate belongs in the install, not beside it. It lived in scripts/ and so was absent
+# from the wheel: a clean-room user could produce a comparison and had no way to check it.
+ketqat-benchmarks-gate = "ketqat_benchmarks.gate:main"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/ketqat_benchmarks"]
+
+# The suites, the results and the citation file go *into* the wheel (#6). Publishing
+# suites so they can be cited at a version, rather than by SDK commit, is the reason this
+# repository exists; a wheel carrying only the harness does not deliver it. They are placed
+# under the package directory so installing this does not put `suites/` and `results/` at
+# the top level of site-packages.
+[tool.hatch.build.targets.wheel.force-include]
+"suites" = "ketqat_benchmarks/suites"
+"results" = "ketqat_benchmarks/results"
+"CITATION.cff" = "ketqat_benchmarks/CITATION.cff"
