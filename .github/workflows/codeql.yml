@@ -1,0 +1,45 @@
+name: CodeQL
+
+# ketqat-benchmarks is public and had **no** code scanning at all: querying its alerts
+# returned "no analysis found". This repository holds the decoder harness whose numbers
+# the registry publishes, so a defect here is a defect in a scientific claim.
+#
+# Pinned to commit SHAs, and declaring permissions, for the same reasons ketqat-sdk does:
+# a tag is a mutable pointer, and a workflow without a permissions block inherits the
+# repository default.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly, so a newly published query finds an old bug without waiting for a push.
+    - cron: "17 5 * * 2"
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
+        with:
+          languages: python
+          # Broader than the default. The harness does statistics and file hashing, where
+          # the interesting defects are correctness ones rather than injection.
+          queries: security-and-quality
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
+        with:
+          category: "/language:python"
