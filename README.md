@@ -14,9 +14,14 @@ python -m pip install -e ".[decoders]"
 python -m ketqat_benchmarks.decoder_comparison --distance 3 --rounds 3 --max-shots 20000
 ```
 
-Every decoder sees **identical samples and identical stopping rules**, because all of them
-run through one Sinter task collection rather than three sampling loops. That is what makes
-the comparison a comparison; two decoders sampled separately are two experiments.
+Every decoder sees **identical samples**, proved rather than asserted: one detector/
+observable sample is drawn directly from Stim (not Sinter), its bytes are SHA-256 hashed,
+and every decoder adapter recomputes that hash from the rows it actually iterated — a
+mismatch excludes the decoder from the paired comparison. Two decoders sampled separately
+are two experiments; equal shot counts alone prove nothing.
+
+Separation is decided by paired per-shot inference (exact McNemar with Bonferroni across
+pairs, paired risk-difference CIs), not by overlap of marginal intervals.
 
 Results carry `is_demo: false` only when they came from a real run. Nothing here fabricates
 a number when a dependency is missing — a missing decoder is recorded as not run.
