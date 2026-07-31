@@ -1,0 +1,8 @@
+cff-version: 1.2.0
+title: ketqat-benchmarks
+message: If you use these benchmark harnesses or results, please cite this repository.
+type: software
+authors:
+  - name: KetQat contributors
+repository-code: https://github.com/ketqat/ketqat-benchmarks
+license: Apache-2.0
