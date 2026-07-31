@@ -1,0 +1,174 @@
+{
+  "schema_version": "0.2",
+  "supersedes": "results/d3-r3-p02.json (schema 0.1, commit 8545166)",
+  "execution_class": "SIMULATION",
+  "experiment": {
+    "code": "surface_code:rotated_memory_z",
+    "distance": 5,
+    "rounds": 5,
+    "noise": 0.02,
+    "shots": 2000,
+    "seed": 11,
+    "sampling": "direct shared-Stim detector sampling (not Sinter)",
+    "circuit_sha256": "46ebb5ccb183619f5e590d91d4f453506d7ac9ffed7e73da78e83e96e047398b",
+    "dem_sha256": "7ada986fde552cf4fd6744ed1da6965ae702edac95ee5f27d797d05b5ef86188",
+    "sample_sha256": "f28d8d1d8b797ce6280d4f457b35acd5a22aad904920ba96a33aa25f44c476e4"
+  },
+  "provenance": {
+    "machine": {
+      "platform": "macOS-15.6.1-arm64-arm-64bit",
+      "machine": "arm64",
+      "processor": "arm",
+      "python": "3.12.12"
+    },
+    "installed_versions": {
+      "stim": "1.16.0",
+      "pymatching": "2.4.0",
+      "beliefmatching": "unknown",
+      "tesseract_decoder": "unknown",
+      "sinter": "1.16.0",
+      "numpy": "2.2.6"
+    },
+    "stim_version": "1.16.0",
+    "latency_protocol": {
+      "warmup_shots": 50,
+      "measured_shots": 1000,
+      "repeats": 3,
+      "order": "randomized per repeat",
+      "isolation": "spawned child process per decoder"
+    },
+    "memory_note": "peak_rss_bytes is child-process ru_maxrss (whole-process RSS); tracemalloc is not used"
+  },
+  "decoders": [
+    {
+      "decoder": "pymatching-mwpm",
+      "library": "pymatching",
+      "library_version": "2.4.0",
+      "available": true,
+      "config": {
+        "algorithm": "minimum-weight perfect matching",
+        "construction": "from_detector_error_model"
+      },
+      "consumed_sample_sha256": "f28d8d1d8b797ce6280d4f457b35acd5a22aad904920ba96a33aa25f44c476e4",
+      "shots": 2000,
+      "decoded": 2000,
+      "abstentions": 0,
+      "logical_errors": 539,
+      "per_shot": "..E..E....EEE..E..E.E.E...E........E.....E.EE.....E....E.E.EE.....E.......E..EE.....EE......E.....E.EE...E..E.E.....E.....EE...EE......E...EEE.E.....E..EEE......EE.E...E..E..........E...E.E....E...EE...EE.....E...E.........E...E.....E...EEE.E..........E...E.E...EE..E..........E.EEEE.....E......E...E..E..E...E..E......E.E..EEE......EE.E.E..E.E....EE....EEEEE...........E.E..E.EE..........E.........EEE..............EE.....E.....EE.....E..E..E..E....E.......E...E...E.....E...E.E..E.....E.E....E.E.EE.E.......E......E.E....E.E.E....E...EE.E....E.E.......E....E..E..E......E..........E..E...E.........E.....E.E..E..E.EE..E.E.....EE.......EE.E..EEEEEEEEE..EEE..E.E..E...E.EE...............E......E......E..E..E.E....E........E..E...EE..EE...............E...E..E.E......EE................EE...........EEEE.....E...E...........EEE....E..E..E......E.E...E..E.EEE...E.....EE..........EEEE..E.E..EE.E....E.......EE...EE...........EEE...EE...EEE..EEE......E..EE.E.EE........E.E....E......E...E..EE....EE.........E..E.............E........EE..........E....E..E.E..E..EE..E...E..EE..E...EE.......EE....E..........E...E...E..EEE.........E.....E...E....E.EE.EEE....EE...E...EE..EE..E.E....E.........E........E...E.E........EE.......E..EE...E.......EE....E.E...EE.....E.....E.E.E.E.......E...EE.....EE.E.EE.E.EE.E...E.E.E.E.E....E......EE.E.................E.......E.....E.E......EEE.E......E.....E.......E...E.E..E.....E.......E.E.......E.EE.........EEE.E...E....E.........E.E........E...E...E.....E........E...E..EE..EE...E.........E.....EE..EE.E....E...EEE...EEEE...E....EE.E...EE.EEE...EE..E....E.E....E..E..E.E..E...EEEEE.EE...E.EE.EE...E.E....E....E..........EEE........E...E.E.EE..E...............................EEEE.E....E.....E..........EEE....E.E...E..E....EE.....E.........E..E...E.E.E.E....E..EEE.......E.....E.....EE.EE..E......E.....EE.E.......E.......EE..E....E...E...E..E..EEE......E.E.E.E....E..E...................EEE.E..............EE.EE.EE..EE.EE...E................EE.....EE..E..E..E..EEE.E.",
+      "not_run_reason": null,
+      "coverage": 1.0,
+      "conditional_error_rate": 0.2695,
+      "unconditional_risk": 0.2695,
+      "wilson_95_conditional": [
+        0.25050984717313135,
+        0.28937391162352627
+      ],
+      "timing": null,
+      "rank_by_unconditional_risk": 3
+    },
+    {
+      "decoder": "beliefmatching",
+      "library": "beliefmatching",
+      "library_version": "unknown",
+      "available": true,
+      "config": {
+        "algorithm": "belief propagation + MWPM",
+        "construction": "from_detector_error_model"
+      },
+      "consumed_sample_sha256": "f28d8d1d8b797ce6280d4f457b35acd5a22aad904920ba96a33aa25f44c476e4",
+      "shots": 2000,
+      "decoded": 2000,
+      "abstentions": 0,
+      "logical_errors": 483,
+      "per_shot": ".EE.......EEE..E...E..E...E........E.....E.EE.....E.........E.E...........E...E...EEEE..E...........EE...E.EE.E.E.........EE....E......E....EE.......E..EEE....E....E......E..........E...E.E....E...E....EE.........E........E....E.....E...EEE.E....E.....E...E.E...EE...........E.E.EEEE.....E......E.............E..E......E.E.EEEE.......E.E.E..E.E....EE....EE.E............E.E.E..EEE..E...........E....EEE..............EE.....E.....E............E........E......E.E.E...E.....E..E..E..E.............EE.E..E.......E........E....E.E.EE...E...EE.E...EE.E.......E.......E..E.E.E..E..........E..EE..E.........E.....E.E..E..E....E.EE.....EE......E.E.E..EEEEEE..E..E...EE....EE..E..EE.....E........E.............E............E...........E...EE...E.......EE...E..E...E....E......EE................E............E..E..EE.E..E............EE........E..E......E.EE.....E.EEE..........E............EE..E.E..EE......E.E.....EE...E.........E..EEE....E...E.E..EEE......E.....E.E.........E.E..E............E..EE....E...E......E..E..........E.......E...EEE.......E......E..E.E..E...E..E...E...E..E...EE.......EE....E.........EE...E......E.E.........E.........E.E..E.EE..E......E........E..EE..E......E.........EE.....E.E.E.E.E........E...E.E.....EE...E......EEE...E....E.EEE....E.....E.E.E.E....E..E.E.EE.....EE.E.EEEE.EE.E...E.E.E.E.E....E........EE...EE.E..........E.......E...E...E......E...E......E...E.E.......E...E.E................E.E.......E.E........E..EE.E.E.E...EE.........E.E.....E..E...EE..E.E................E..E..E.E.............E.....E.E.EE.....EE...EEE...E.EE...E....E..E...EE.EE....E...E....E......E..E.E..E..E...EE....E....E.EE.E...EE.E....E................EE..............E.EE..E...............................EEE.EE...EE.....E..........EEEE.....E......E....EE..E..E......E..E..E...E.E.E.E....E..E.........E...E.E.....E..EE..E......E.....E..E...............EE.E.....E.......E.......E...E..E...E.E....E..E....E...............EE.E.....E........EE.EE..E...E.E....E...............EEEE....EE..E..E.....EEE...",
+      "not_run_reason": null,
+      "coverage": 1.0,
+      "conditional_error_rate": 0.2415,
+      "unconditional_risk": 0.2415,
+      "wilson_95_conditional": [
+        0.22324973094448866,
+        0.260741382499919
+      ],
+      "timing": null,
+      "rank_by_unconditional_risk": 1
+    },
+    {
+      "decoder": "tesseract",
+      "library": "tesseract-decoder",
+      "library_version": "unknown",
+      "available": true,
+      "config": {
+        "algorithm": "tesseract most-likely-error",
+        "sinter_decoder_key": "tesseract-long-beam"
+      },
+      "consumed_sample_sha256": "f28d8d1d8b797ce6280d4f457b35acd5a22aad904920ba96a33aa25f44c476e4",
+      "shots": 2000,
+      "decoded": 2000,
+      "abstentions": 0,
+      "logical_errors": 497,
+      "per_shot": ".....E.....EE......E..E...E......E.....E.E.EE.....EE...E....E.E.E.........E...E...E.EE..E....E...EE.EE...E....E.E.........EE....E........E..EE.E.....E.EEEE.........E......E..........E..............EE..EEE..E......E...E....E....E.....E.E.EEE.E..........E...E....EE...........E..E..EEE.....E.EE...........E.E...E..EE.....E.E.EEEE...E.....E.E..E.....EEE.E..EEEE............EEE....EEE..E.....E.....E......EE.............EE.....E....EE......E.....E........E......E...E...E.E...E..E..E..E.......E.....EE....E................E.E..E.E.E....E...E..E...EE.E.......E.......E...EE.E.............E..E........E....EE....E.......E....E........EE........E.E...EEEEEE.E..E....E....EE..E.E......EE........E.....E.......E..E.........E........E......EE...EE......EE...E......E....E......EE......E.........EE..............E..E..E..E...........EEEE..........E......E.EE....E..EE.........E.E..E.......E.E...E.E...E......E.E....EEE.....E..........EEE.E..E..EE.E..E.E......E.....E.EE........E.E.EE............E..EE....EE..E...E..E..E..........E......EE.E.EEE.....E.E......E..E.E..EE..E..E......EE..E.E.EE.......EE....E........E.E...E......E......E........E....EE.E.....E.....E...E.......EE..EE.EE......E................E.EE.EE.E........E...E.E..E..EE...E..E...EEE...E....E.E.E....E.....EEE.E.E....E..E.E.EE.....E..E..E...EE.....E.E.E.E.E....E........EE...EE.E.E........E...........E.E......E.E..E.......E.....E...E..EE...E.E................E.E.EE....E.E.......E...EE...E......E.........E.....E....E...EE..E.E...E.........E..E..E....E.....E.......E.....E.E..E.E...EE...EE....E..EE..E..E.E..E...EE..E....E...E....E....E.E.EE.E.....E....E.E..E.......E.E...EE.E....E................EE................EE..E.................................E.EE...E......E..E........EE......EE.....E.....E..E..E......E..E.EE.....E.E....E.EE.EE...........EE....E..E..EE..E.......E....EEE..E.........E..EEE.E.....E...EE..E.......E......E.....E.E..EE.E....................EE.E.............E.E.EEE.E..EE.E....E...........E....E.E....EE..E.EE.E....EE.E.",
+      "not_run_reason": null,
+      "coverage": 1.0,
+      "conditional_error_rate": 0.2485,
+      "unconditional_risk": 0.2485,
+      "wilson_95_conditional": [
+        0.23005499490004985,
+        0.2679092798824203
+      ],
+      "timing": null,
+      "rank_by_unconditional_risk": 2
+    }
+  ],
+  "paired_comparisons": [
+    {
+      "n_paired": 2000,
+      "b01": 147,
+      "b10": 91,
+      "risk_difference": 0.028,
+      "ci_95": [
+        0.012931458332884754,
+        0.04306854166711525
+      ],
+      "mcnemar_p": 0.00034355945267942667,
+      "a": "pymatching-mwpm",
+      "b": "beliefmatching",
+      "alpha_bonferroni": 0.016666666666666666,
+      "significant_after_bonferroni": true
+    },
+    {
+      "n_paired": 2000,
+      "b01": 197,
+      "b10": 155,
+      "risk_difference": 0.021,
+      "ci_95": [
+        0.0026369573721803964,
+        0.0393630426278196
+      ],
+      "mcnemar_p": 0.02872289420309173,
+      "a": "pymatching-mwpm",
+      "b": "tesseract",
+      "alpha_bonferroni": 0.016666666666666666,
+      "significant_after_bonferroni": false
+    },
+    {
+      "n_paired": 2000,
+      "b01": 110,
+      "b10": 124,
+      "risk_difference": -0.007,
+      "ci_95": [
+        -0.02198770246800687,
+        0.007987702468006872
+      ],
+      "mcnemar_p": 0.39546370707936823,
+      "a": "beliefmatching",
+      "b": "tesseract",
+      "alpha_bonferroni": 0.016666666666666666,
+      "significant_after_bonferroni": false
+    }
+  ],
+  "decoders_run": 3,
+  "is_leaderboard": true,
+  "is_demo": false,
+  "publishable": true,
+  "reproducibility_sha256": "7c5a88e5fc6ad69f029b7e9bfcb5cc890d8814acb4032494ed1641b78217c234"
+}
