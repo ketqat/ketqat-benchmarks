@@ -1,0 +1,21 @@
+name: CI
+on:
+  push: { branches: [main] }
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  decoders:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with: { python-version: "3.12" }
+      - name: Install with real decoders
+        run: python -m pip install -e ".[decoders]" pytest
+      - name: Tests
+        run: python -m pytest tests -q
+      - name: A real three-decoder comparison must run
+        run: |
+          python -m ketqat_benchmarks.decoder_comparison --distance 3 --rounds 3 --noise 0.02 --max-shots 2000 --output /tmp/cmp.json
+          python scripts/assert_three_decoders.py /tmp/cmp.json

@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ketqat-benchmarks"
+version = "0.1.0"
+description = "Benchmark suites, decoder comparisons, fixtures and importers for KetQat."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+# Heavy scientific dependencies live here, never in ketqat-sdk's core.
+decoders = [
+  "stim>=1.14",
+  "sinter>=1.14",
+  "pymatching>=2.2",
+  "beliefmatching>=0.1",
+  "tesseract-decoder>=0.1",
+  "numpy>=1.24",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ketqat_benchmarks"]

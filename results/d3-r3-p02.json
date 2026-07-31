@@ -1,0 +1,94 @@
+{
+  "schema_version": "0.1",
+  "is_demo": false,
+  "experiment": {
+    "code": "surface_code:rotated_memory_z",
+    "distance": 3,
+    "rounds": 3,
+    "noise": 0.02,
+    "shots": 20000,
+    "seed": 7,
+    "stim_version": "1.16.0"
+  },
+  "comparability": {
+    "code": "surface_code:rotated_memory_z",
+    "distance": 3,
+    "rounds": 3,
+    "noise": 0.02,
+    "shots": 20000,
+    "sample_source": "single shared Stim detector sample"
+  },
+  "decoders": [
+    {
+      "decoder": "pymatching-mwpm",
+      "library": "pymatching",
+      "library_version": "2.4.0",
+      "available": true,
+      "shots": 20000,
+      "logical_errors": 2837,
+      "abstentions": 0,
+      "compile_seconds": 0.000893165823072195,
+      "decode_seconds": 0.2300891252234578,
+      "latency_p50_us": 10.292045772075653,
+      "latency_p95_us": 12.541189789772034,
+      "latency_p99_us": 16.999896615743637,
+      "throughput_shots_per_second": 86922.83905454642,
+      "peak_memory_bytes": 663874,
+      "not_run_reason": null,
+      "notes": [],
+      "logical_error_rate": 0.14185,
+      "wilson_95": [
+        0.13708330036712757,
+        0.1467542601142552
+      ]
+    },
+    {
+      "decoder": "beliefmatching",
+      "library": "beliefmatching",
+      "library_version": "unknown",
+      "available": true,
+      "shots": 20000,
+      "logical_errors": 2693,
+      "abstentions": 0,
+      "compile_seconds": 0.014282874763011932,
+      "decode_seconds": 4.520564874634147,
+      "latency_p50_us": 69.458968937397,
+      "latency_p95_us": 443.5828886926174,
+      "latency_p99_us": 480.9577949345112,
+      "throughput_shots_per_second": 4424.225855539485,
+      "peak_memory_bytes": 699901,
+      "not_run_reason": null,
+      "notes": [],
+      "logical_error_rate": 0.13465,
+      "wilson_95": [
+        0.12998923632464143,
+        0.13945108957755925
+      ]
+    },
+    {
+      "decoder": "tesseract",
+      "library": "tesseract-decoder",
+      "library_version": "unknown",
+      "available": true,
+      "shots": 20000,
+      "logical_errors": 2604,
+      "abstentions": 0,
+      "compile_seconds": 0.004691916052252054,
+      "decode_seconds": 8.987529125064611,
+      "latency_p50_us": 348.49997609853745,
+      "latency_p95_us": 1200.2498842775822,
+      "latency_p99_us": 2240.542322397232,
+      "throughput_shots_per_second": 2225.305723263091,
+      "peak_memory_bytes": 657396,
+      "not_run_reason": null,
+      "notes": [],
+      "logical_error_rate": 0.1302,
+      "wilson_95": [
+        0.12560694912598735,
+        0.13493508595991338
+      ]
+    }
+  ],
+  "decoders_run": 3,
+  "is_leaderboard": true
+}
