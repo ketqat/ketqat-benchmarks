@@ -1,0 +1,9 @@
+beliefmatching==0.2.0
+networkx==3.6.1
+numpy==2.2.6
+PyMatching==2.4.0
+scipy==1.17.1
+scipy-openblas32==0.3.34.0.0
+sinter==1.16.0
+stim==1.16.0
+tesseract_decoder==0.1.1.dev20260728064717
