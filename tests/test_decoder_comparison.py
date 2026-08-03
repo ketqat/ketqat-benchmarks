@@ -99,3 +99,52 @@ def test_paired_comparisons_carry_multiplicity_correction() -> None:
     for pair in report["paired_comparisons"]:
         assert pair["alpha_bonferroni"] <= 0.05 / max(1, len(report["paired_comparisons"]))
         assert "mcnemar_p" in pair and "ci_95" in pair
+
+
+def test_dead_timing_child_yields_a_structured_failure_promptly():
+    """ketqat-benchmarks#9: a child that dies without posting must be detected
+    within seconds and reported as data, not hung on for 30 minutes.
+
+    The child is made to die by crashing it deterministically: an unknown
+    decoder name raises inside the child before anything is posted -- the same
+    observable behavior as the OOM-killed tesseract child, without needing to
+    exhaust memory in CI.
+    """
+    import time as _time
+
+    import numpy as np
+    import stim
+
+    from ketqat_benchmarks.decoder_comparison import build_circuit, timing_for
+
+    circuit = build_circuit(3, 3, 0.02)
+    dem = circuit.detector_error_model(decompose_errors=True)
+    detectors, _ = circuit.compile_detector_sampler(seed=7).sample(64, separate_observables=True)
+
+    start = _time.perf_counter()
+    record = timing_for("no-such-decoder", dem, np.asarray(detectors), 8, 1, 7)
+    elapsed = _time.perf_counter() - start
+
+    # The unknown-name child posts an error record itself; either way the
+    # parent must return promptly with a structured record, never hang.
+    assert elapsed < 60, f"timing_for took {elapsed:.0f}s for a dead child"
+    assert "error" in record
+
+
+def test_timing_failure_record_is_structured():
+    from ketqat_benchmarks.decoder_comparison import (
+        TIMING_WALL_CLOCK_BOUND_SECONDS,
+        _timing_failure,
+    )
+
+    record = _timing_failure("tesseract", "child-died", elapsed=12.5, exitcode=-9)
+    assert record["error_class"] == "child-died"
+    assert record["decoder"] == "tesseract"
+    assert record["signal"] == 9
+    assert record["suspected_oom"] is True
+    assert record["wall_clock_bound_seconds"] == TIMING_WALL_CLOCK_BOUND_SECONDS
+    assert "platform" in record["environment"]
+
+    timeout = _timing_failure("tesseract", "timeout", elapsed=601.0, exitcode=None)
+    assert timeout["suspected_oom"] is False
+    assert timeout["signal"] is None

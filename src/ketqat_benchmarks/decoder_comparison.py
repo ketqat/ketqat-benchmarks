@@ -38,6 +38,7 @@ import hashlib
 import json
 import math
 import multiprocessing
+import queue as pyqueue
 import platform
 import random
 import resource
@@ -239,6 +240,14 @@ def _timing_child(name: str, dem_text: str, det_bytes: bytes, det_shape,
                   latency_shots: int, repeats: int, seed: int, queue) -> None:
     """One decoder, in its own spawned process: its own caches, its own RSS."""
     try:
+        # Bound the child's address space where the platform honors it
+        # (Linux). macOS largely ignores RLIMIT_AS, so the parent's
+        # wall-clock bound is the enforcement that always works; this is
+        # defense in depth, not the primary guard.
+        try:
+            resource.setrlimit(resource.RLIMIT_AS, (TIMING_CHILD_MEMORY_BOUND_BYTES, TIMING_CHILD_MEMORY_BOUND_BYTES))
+        except (ValueError, OSError):
+            pass
         import numpy as np
         import stim
 
@@ -321,6 +330,36 @@ def _timing_child(name: str, dem_text: str, det_bytes: bytes, det_shape,
         queue.put({"error": f"{type(exc).__name__}: {exc}"})
 
 
+TIMING_WALL_CLOCK_BOUND_SECONDS = 600
+TIMING_CHILD_MEMORY_BOUND_BYTES = 8 * 1024**3
+
+
+def _timing_failure(name: str, error_class: str, *, elapsed: float,
+                    exitcode: int | None = None) -> dict[str, Any]:
+    """Structured failed-cell record (ketqat-benchmarks#9).
+
+    A timing cell that could not be measured is data about the decoder --
+    "tesseract exhausts memory here" is a finding -- so the failure carries
+    everything a reader needs to classify it: which bound fired, how the
+    child died, and the environment it died in. Downstream datasets copy
+    this record instead of leaving an unexplained hole.
+    """
+    signal_number = -exitcode if exitcode is not None and exitcode < 0 else None
+    record: dict[str, Any] = {
+        "error": error_class,
+        "error_class": error_class,
+        "decoder": name,
+        "elapsed_seconds": round(elapsed, 3),
+        "wall_clock_bound_seconds": TIMING_WALL_CLOCK_BOUND_SECONDS,
+        "memory_bound_bytes": TIMING_CHILD_MEMORY_BOUND_BYTES,
+        "exitcode": exitcode,
+        "signal": signal_number,
+        "suspected_oom": signal_number == 9,
+        "environment": machine_metadata(),
+    }
+    return record
+
+
 def timing_for(name: str, dem, detectors, latency_shots: int, repeats: int, seed: int) -> dict[str, Any]:
     ctx = multiprocessing.get_context("spawn")
     queue: Any = ctx.Queue()
@@ -329,8 +368,39 @@ def timing_for(name: str, dem, detectors, latency_shots: int, repeats: int, seed
         args=(name, str(dem), detectors.tobytes(), detectors.shape, latency_shots, repeats, seed, queue),
     )
     proc.start()
-    payload = queue.get(timeout=1800)
+    # Poll instead of a single long queue.get: a child that dies without
+    # posting must be detected within a second, not after a 30-minute
+    # timeout with the parent at 0% CPU -- which is exactly how the d=7
+    # grid run wedged for over an hour (ketqat-benchmarks#9).
+    start = time.perf_counter()
+    payload: dict[str, Any] | None = None
+    while True:
+        try:
+            payload = queue.get(timeout=1.0)
+            break
+        except pyqueue.Empty:
+            pass
+        elapsed = time.perf_counter() - start
+        if not proc.is_alive():
+            # One last drain: the child may have posted between the timeout
+            # and the liveness check.
+            try:
+                payload = queue.get(timeout=1.0)
+                break
+            except pyqueue.Empty:
+                payload = _timing_failure(name, "child-died", elapsed=elapsed, exitcode=proc.exitcode)
+                break
+        if elapsed > TIMING_WALL_CLOCK_BOUND_SECONDS:
+            proc.terminate()
+            proc.join(timeout=10)
+            if proc.is_alive():
+                proc.kill()
+            payload = _timing_failure(name, "timeout", elapsed=elapsed, exitcode=proc.exitcode)
+            break
     proc.join(timeout=60)
+    if proc.is_alive():
+        proc.kill()
+        proc.join(timeout=10)
     return payload
 
 
@@ -380,7 +450,12 @@ def run_comparison(distance: int, rounds: int, noise: float, shots: int, seed: i
     timings: dict[str, dict[str, Any]] = {}
     if with_timing:
         for r in ran:
-            timings[r.decoder] = timing_for(r.decoder, dem, detectors, latency_shots, timing_repeats, seed)
+            timing = timing_for(r.decoder, dem, detectors, latency_shots, timing_repeats, seed)
+            if "error_class" in timing:
+                # The cell context lives here, not in timing_for: a failed
+                # cell must name what was being measured when it failed.
+                timing.update({"distance": distance, "rounds": rounds, "noise": noise, "seed": seed})
+            timings[r.decoder] = timing
 
     # Paired inference over every pair, Bonferroni-corrected across the family.
     pairs: list[dict[str, Any]] = []
