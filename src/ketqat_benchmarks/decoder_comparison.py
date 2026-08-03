@@ -247,6 +247,9 @@ def _timing_child(name: str, dem_text: str, det_bytes: bytes, det_shape,
         try:
             resource.setrlimit(resource.RLIMIT_AS, (TIMING_CHILD_MEMORY_BOUND_BYTES, TIMING_CHILD_MEMORY_BOUND_BYTES))
         except (ValueError, OSError):
+            # macOS refuses or ignores RLIMIT_AS; the parent's wall-clock
+            # bound is the enforcement that works everywhere, so a platform
+            # that rejects the limit is degraded, not broken.
             pass
         import numpy as np
         import stim
@@ -379,6 +382,8 @@ def timing_for(name: str, dem, detectors, latency_shots: int, repeats: int, seed
             payload = queue.get(timeout=1.0)
             break
         except pyqueue.Empty:
+            # No payload within this 1s tick; fall through to the liveness
+            # and wall-clock checks below, which are the point of polling.
             pass
         elapsed = time.perf_counter() - start
         if not proc.is_alive():
