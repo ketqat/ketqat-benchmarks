@@ -161,7 +161,13 @@ def test_accuracy_isolation_one_dead_decoder_keeps_the_others():
         raise MemoryError("synthetic death inside the child")
 
     original = dict(dc.ACCURACY_ADAPTERS)
+    original_bound = dc.ACCURACY_WALL_CLOCK_BOUND_SECONDS
     dc.ACCURACY_ADAPTERS["broken-decoder"] = _broken
+    # The bound is parent-side, so shrinking it here bounds THIS TEST too: if
+    # an isolation regression makes the child hang instead of die, the test
+    # fails in ~a minute rather than stalling CI for the production bound
+    # (review note on #12).
+    dc.ACCURACY_WALL_CLOCK_BOUND_SECONDS = 60
     try:
         start = _time.perf_counter()
         report = dc.run_comparison(3, 3, 0.02, 200, seed=7, with_timing=False)
@@ -169,6 +175,7 @@ def test_accuracy_isolation_one_dead_decoder_keeps_the_others():
     finally:
         dc.ACCURACY_ADAPTERS.clear()
         dc.ACCURACY_ADAPTERS.update(original)
+        dc.ACCURACY_WALL_CLOCK_BOUND_SECONDS = original_bound
 
     assert elapsed < 300, f"a dead decoder must not stall the run ({elapsed:.0f}s)"
     rows = {r["decoder"]: r for r in report["decoders"]}
