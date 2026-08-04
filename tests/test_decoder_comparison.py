@@ -148,3 +148,46 @@ def test_timing_failure_record_is_structured():
     timeout = _timing_failure("tesseract", "timeout", elapsed=601.0, exitcode=None)
     assert timeout["suspected_oom"] is False
     assert timeout["signal"] is None
+
+
+def test_accuracy_isolation_one_dead_decoder_keeps_the_others():
+    """#11: a decoder that dies in its accuracy child must lose only its own
+    cell -- the siblings' results survive, and nothing hangs."""
+    import time as _time
+
+    from ketqat_benchmarks import decoder_comparison as dc
+
+    def _broken(dem, detectors, observables):
+        raise MemoryError("synthetic death inside the child")
+
+    original = dict(dc.ACCURACY_ADAPTERS)
+    original_bound = dc.ACCURACY_WALL_CLOCK_BOUND_SECONDS
+    dc.ACCURACY_ADAPTERS["broken-decoder"] = _broken
+    # The bound is parent-side, so shrinking it here bounds THIS TEST too: if
+    # an isolation regression makes the child hang instead of die, the test
+    # fails in ~a minute rather than stalling CI for the production bound
+    # (review note on #12).
+    dc.ACCURACY_WALL_CLOCK_BOUND_SECONDS = 60
+    try:
+        start = _time.perf_counter()
+        report = dc.run_comparison(3, 3, 0.02, 200, seed=7, with_timing=False)
+        elapsed = _time.perf_counter() - start
+    finally:
+        dc.ACCURACY_ADAPTERS.clear()
+        dc.ACCURACY_ADAPTERS.update(original)
+        dc.ACCURACY_WALL_CLOCK_BOUND_SECONDS = original_bound
+
+    assert elapsed < 300, f"a dead decoder must not stall the run ({elapsed:.0f}s)"
+    rows = {r["decoder"]: r for r in report["decoders"]}
+    assert rows["broken-decoder"]["available"] is False
+    # The child is a fresh spawn, so it cannot see this test's monkeypatched
+    # adapter and dies on the lookup instead of the synthetic MemoryError.
+    # Either way is a child failing INSIDE isolation -- the assertion that
+    # matters is that the failure is structured and contained.
+    assert rows["broken-decoder"]["not_run_reason"], "the failure must carry a reason"
+    assert "error" in rows["broken-decoder"]["not_run_reason"].lower()
+    survivors = [r for r in report["decoders"] if r["available"]]
+    assert len(survivors) >= 1, "the healthy decoders' accuracy must survive a sibling's death"
+    for row in survivors:
+        assert row["shots"] == 200
+        assert row["per_shot"], "per-shot outcomes must be present for survivors"

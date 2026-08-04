@@ -226,6 +226,112 @@ def _accuracy_tesseract(dem, detectors, observables) -> AccuracyResult:
     return result
 
 
+ACCURACY_WALL_CLOCK_BOUND_SECONDS = 1800
+
+
+def _accuracy_child(name: str, dem_text: str, det_bytes: bytes, det_shape,
+                    obs_bytes: bytes, obs_shape, queue) -> None:
+    """One decoder's ACCURACY pass in its own spawned process (#11).
+
+    The d=7/p=0.02 tesseract decode ran 2.5 hours in-process and, because every
+    decoder shared that process, took pymatching's and beliefmatching's
+    accuracy down with it when the run was abandoned. Isolation means a slow
+    or dying decoder loses only its own cell.
+    """
+    try:
+        try:
+            resource.setrlimit(resource.RLIMIT_AS,
+                               (TIMING_CHILD_MEMORY_BOUND_BYTES, TIMING_CHILD_MEMORY_BOUND_BYTES))
+        except (ValueError, OSError):
+            # macOS refuses or ignores RLIMIT_AS; the parent's wall-clock bound
+            # is the enforcement that works everywhere.
+            pass
+        import numpy as np
+        import stim
+
+        dem = stim.DetectorErrorModel(dem_text)
+        detectors = np.frombuffer(det_bytes, dtype=np.bool_).reshape(det_shape)
+        observables = np.frombuffer(obs_bytes, dtype=np.bool_).reshape(obs_shape)
+        adapter = ACCURACY_ADAPTERS[name]
+        outcome = adapter(dem, detectors, observables)
+        queue.put({
+            "decoder": outcome.decoder,
+            "library": outcome.library,
+            "library_version": outcome.library_version,
+            "available": outcome.available,
+            "config": outcome.config,
+            "consumed_sample_sha256": outcome.consumed_sample_sha256,
+            "per_shot": "".join({"ok": ".", "err": "E", "abstain": "a"}[s] for s in outcome.per_shot),
+            "not_run_reason": outcome.not_run_reason,
+        })
+    except Exception as exc:  # noqa: BLE001 - the parent records the failure
+        queue.put({"error": f"{type(exc).__name__}: {exc}", "decoder": name})
+
+
+def accuracy_for(name: str, dem, detectors, observables) -> AccuracyResult:
+    """Bounded, isolated accuracy run; never hangs, never takes siblings down."""
+    ctx = multiprocessing.get_context("spawn")
+    queue: Any = ctx.Queue()
+    proc = ctx.Process(
+        target=_accuracy_child,
+        args=(name, str(dem), detectors.tobytes(), detectors.shape,
+              observables.tobytes(), observables.shape, queue),
+    )
+    proc.start()
+    start = time.perf_counter()
+    payload: dict[str, Any] | None = None
+    while True:
+        try:
+            payload = queue.get(timeout=1.0)
+            break
+        except pyqueue.Empty:
+            # No payload within this 1s tick; fall through to the liveness and
+            # wall-clock checks, which are the point of polling.
+            pass
+        elapsed = time.perf_counter() - start
+        if not proc.is_alive():
+            try:
+                payload = queue.get(timeout=1.0)
+                break
+            except pyqueue.Empty:
+                failure = _timing_failure(name, "child-died", elapsed=elapsed, exitcode=proc.exitcode)
+                failure["phase"] = "accuracy"
+                failure["wall_clock_bound_seconds"] = ACCURACY_WALL_CLOCK_BOUND_SECONDS
+                payload = {"error": "child-died", "structured": failure, "decoder": name}
+                break
+        if elapsed > ACCURACY_WALL_CLOCK_BOUND_SECONDS:
+            proc.terminate()
+            proc.join(timeout=10)
+            if proc.is_alive():
+                proc.kill()
+            failure = _timing_failure(name, "timeout", elapsed=elapsed, exitcode=proc.exitcode)
+            failure["phase"] = "accuracy"
+            failure["wall_clock_bound_seconds"] = ACCURACY_WALL_CLOCK_BOUND_SECONDS
+            payload = {"error": "timeout", "structured": failure, "decoder": name}
+            break
+    proc.join(timeout=60)
+    if proc.is_alive():
+        proc.kill()
+        proc.join(timeout=10)
+
+    if "error" in payload:
+        reason = payload.get("structured", {"error": payload["error"]})
+        return AccuracyResult(name, name, "", False, not_run_reason=_canonical(reason))
+    marks = {".": "ok", "E": "err", "a": "abstain"}
+    result = AccuracyResult(
+        payload["decoder"], payload["library"], payload["library_version"], payload["available"],
+        config=payload["config"],
+        consumed_sample_sha256=payload["consumed_sample_sha256"],
+        not_run_reason=payload["not_run_reason"],
+    )
+    result.per_shot = [marks[c] for c in payload["per_shot"]]
+    result.shots = len(result.per_shot)
+    result.abstentions = sum(1 for s in result.per_shot if s == "abstain")
+    result.decoded = result.shots - result.abstentions
+    result.logical_errors = sum(1 for s in result.per_shot if s == "err")
+    return result
+
+
 ACCURACY_ADAPTERS: dict[str, Callable] = {
     "pymatching-mwpm": _accuracy_pymatching,
     "beliefmatching": _accuracy_beliefmatching,
@@ -437,19 +543,18 @@ def run_comparison(distance: int, rounds: int, noise: float, shots: int, seed: i
     master_hash = sample_digest(detectors, observables)
 
     results: list[AccuracyResult] = []
-    for name, adapter in ACCURACY_ADAPTERS.items():
-        try:
-            outcome = adapter(dem, detectors, observables)
-            if outcome.consumed_sample_sha256 != master_hash:
-                # A decoder that did not provably consume the shared sample is excluded
-                # from the paired comparison rather than compared on faith.
-                outcome.available = False
-                outcome.not_run_reason = (
-                    f"consumed-sample hash {outcome.consumed_sample_sha256[:12]} != master {master_hash[:12]}"
-                )
-            results.append(outcome)
-        except Exception as exc:  # noqa: BLE001
-            results.append(AccuracyResult(name, name, "", False, not_run_reason=f"{type(exc).__name__}: {exc}"))
+    for name in ACCURACY_ADAPTERS:
+        # Isolated and bounded (#11): a slow or dying decoder loses only its
+        # own cell, and the loop continues to the next decoder regardless.
+        outcome = accuracy_for(name, dem, detectors, observables)
+        if outcome.available and outcome.consumed_sample_sha256 != master_hash:
+            # A decoder that did not provably consume the shared sample is excluded
+            # from the paired comparison rather than compared on faith.
+            outcome.available = False
+            outcome.not_run_reason = (
+                f"consumed-sample hash {str(outcome.consumed_sample_sha256)[:12]} != master {master_hash[:12]}"
+            )
+        results.append(outcome)
 
     ran = [r for r in results if r.available]
     timings: dict[str, dict[str, Any]] = {}
