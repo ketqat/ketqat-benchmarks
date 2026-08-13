@@ -258,11 +258,20 @@ def to_report(comparisons: list[Comparison]) -> dict[str, Any]:
         "schema_version": "0.1",
         "counts": counts,
         "comparisons": [asdict(comparison) for comparison in comparisons],
+        # Parenthesised rather than relying on implicit adjacent-string
+        # concatenation. In a list literal that idiom is indistinguishable from a
+        # missing comma -- CodeQL flags it for exactly that reason -- and here the
+        # two readings differ in how many notes the report carries.
         "notes": [
-            "UNAVAILABLE is not a pass. A comparison that did not run proves nothing, and the CI "
-            "gate fails when a required one is UNAVAILABLE.",
-            "DIFFERED is not necessarily a defect. Where the tools define a quantity differently "
-            "the cause is recorded in definitional_difference rather than tuned away.",
+            (
+                "UNAVAILABLE is not a pass. A comparison that did not run proves nothing, and the "
+                "CI gate fails when a required one is UNAVAILABLE."
+            ),
+            (
+                "DIFFERED is not necessarily a defect. Where the tools define a quantity "
+                "differently the cause is recorded in definitional_difference rather than tuned "
+                "away."
+            ),
         ],
     }
 
