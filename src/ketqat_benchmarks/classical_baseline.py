@@ -203,17 +203,28 @@ def record(sizes: list[tuple[int, int]], repeats: int = DEFAULT_REPEATS) -> Base
             "cores_used": 1,
         },
         measurements=measurements,
+        # Parenthesised rather than relying on implicit adjacent-string
+        # concatenation: in a list literal that idiom is indistinguishable from
+        # a missing comma, and here the two readings differ in how many
+        # limitations the evidence file claims. CodeQL flags it for that reason.
         limitations=[
-            "Single-core pure Python. An optimised simulator on the same machine would be far faster, "
-            "so this understates classical capability -- a bias against classical, and therefore against "
-            "the conclusion this project would otherwise prefer to draw.",
-            "Exact simulation only. Approximate methods (tensor networks, Clifford+T decompositions) can "
-            "handle much larger circuits and are not measured here.",
-            "One machine, one date. A runtime is a property of the hardware it ran on and transfers to "
-            "another machine only as an order of magnitude.",
-            "This is a reference measurement for demonstrating the assessment pipeline. It is not evidence "
-            "about any organisation's production workload.",
-        ],
+            (
+                "Single-core pure Python. An optimised simulator on the same machine would be far faster, "
+                "so this understates classical capability -- a bias against classical, and therefore against "
+                "the conclusion this project would otherwise prefer to draw."
+            ),
+            (
+                "Exact simulation only. Approximate methods (tensor networks, Clifford+T decompositions) can "
+                "handle much larger circuits and are not measured here."
+            ),
+            (
+                "One machine, one date. A runtime is a property of the hardware it ran on and transfers to "
+                "another machine only as an order of magnitude."
+            ),
+            (
+                "This is a reference measurement for demonstrating the assessment pipeline. It is not evidence "
+                "about any organisation's production workload."
+            ),        ],
     )
 
 
