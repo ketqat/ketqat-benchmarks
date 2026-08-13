@@ -40,6 +40,12 @@ jobs:
         run: python -m pip install -e ".[estimators]" pytest
       - name: Scientific property tests
         run: python -m pytest tests/test_resource_intelligence.py -q
+
+      # The committed measurement is checked for shape and internal consistency,
+      # not re-timed: a runner's wall clock is not this machine's, and pinning a
+      # duration would fail everywhere except where it was written.
+      - name: The measured classical baseline is a real dated measurement
+        run: python -m pytest tests/test_classical_baseline.py -q
       - name: The differential comparisons must actually have run
         run: |
           python -m ketqat_benchmarks.resource_intelligence \

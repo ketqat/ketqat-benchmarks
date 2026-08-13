@@ -1,0 +1,66 @@
+{
+  "kind": "MEASURED_CLASSICAL_BASELINE",
+  "schema_version": "0.1",
+  "workload": "Exact statevector simulation of a layered H / CX / T circuit",
+  "description": "Wall-clock time to simulate the circuit exactly on one CPU core, in pure Python. The minimum over repeats is reported; the full set is retained so the spread is visible.",
+  "measured_on": "2026-08-14",
+  "command": "python -m ketqat_benchmarks.classical_baseline --sizes 8x2 10x2 12x2 --repeats 5",
+  "environment": {
+    "cpu": "Apple M2 Pro",
+    "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "python_version": "3.14.4",
+    "python_implementation": "CPython",
+    "cores_used": 1
+  },
+  "measurements": [
+    {
+      "qubits": 8,
+      "gate_count": 38,
+      "runtime_seconds": 0.000522000016644597,
+      "runtime_all_seconds": [
+        0.0005415419582277536,
+        0.000522000016644597,
+        0.0005271669942885637,
+        0.0005263749044388533,
+        0.0005351669387891889
+      ],
+      "runtime_median_seconds": 0.0005271669942885637,
+      "statevector_bytes": 4096
+    },
+    {
+      "qubits": 10,
+      "gate_count": 48,
+      "runtime_seconds": 0.0030327910790219903,
+      "runtime_all_seconds": [
+        0.0030912499641999602,
+        0.0030327910790219903,
+        0.00308458402287215,
+        0.0030466660391539335,
+        0.0030719590140506625
+      ],
+      "runtime_median_seconds": 0.0030719590140506625,
+      "statevector_bytes": 16384
+    },
+    {
+      "qubits": 12,
+      "gate_count": 58,
+      "runtime_seconds": 0.014375667087733746,
+      "runtime_all_seconds": [
+        0.014375667087733746,
+        0.015077208983711898,
+        0.015112165943719447,
+        0.015109958010725677,
+        0.01461754203774035
+      ],
+      "runtime_median_seconds": 0.015077208983711898,
+      "statevector_bytes": 65536
+    }
+  ],
+  "limitations": [
+    "Single-core pure Python. An optimised simulator on the same machine would be far faster, so this understates classical capability -- a bias against classical, and therefore against the conclusion this project would otherwise prefer to draw.",
+    "Exact simulation only. Approximate methods (tensor networks, Clifford+T decompositions) can handle much larger circuits and are not measured here.",
+    "One machine, one date. A runtime is a property of the hardware it ran on and transfers to another machine only as an order of magnitude.",
+    "This is a reference measurement for demonstrating the assessment pipeline. It is not evidence about any organisation's production workload."
+  ]
+}
