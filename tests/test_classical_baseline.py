@@ -10,13 +10,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
-from ketqat_benchmarks.classical_baseline import (
-    BaselineEvidence,
-    measure,
-    record,
-)
+from ketqat_benchmarks.classical_baseline import measure, record
 
 EVIDENCE = Path(__file__).resolve().parents[1] / "results" / "reference" / "classical-baseline.json"
 
