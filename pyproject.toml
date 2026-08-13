@@ -42,6 +42,9 @@ ketqat-benchmarks-gate = "ketqat_benchmarks.gate:main"
 # The differential comparison ships with the package for the same reason the
 # gate does: a clean-room user must be able to re-run it, not just read it.
 ketqat-benchmarks-resource-intelligence = "ketqat_benchmarks.resource_intelligence:main"
+# The measured classical baseline. A user re-runs this on their own machine to
+# produce their own evidence file; the committed one is a reference, not theirs.
+ketqat-benchmarks-classical-baseline = "ketqat_benchmarks.classical_baseline:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ketqat_benchmarks"]
