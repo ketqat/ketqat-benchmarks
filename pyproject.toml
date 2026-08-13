@@ -26,10 +26,22 @@ decoders = [
   "numpy>=1.24",
 ]
 
+# Independent estimators, for differential validation only (#13). Optional
+# because they are heavy and because the property tests stand without them --
+# but a CI job installs them explicitly and asserts the comparisons ran, so
+# "optional" never quietly becomes "skipped and reported green".
+estimators = [
+  "qsharp>=1.9",
+  "qualtran>=0.4",
+]
+
 [project.scripts]
 # The gate belongs in the install, not beside it. It lived in scripts/ and so was absent
 # from the wheel: a clean-room user could produce a comparison and had no way to check it.
 ketqat-benchmarks-gate = "ketqat_benchmarks.gate:main"
+# The differential comparison ships with the package for the same reason the
+# gate does: a clean-room user must be able to re-run it, not just read it.
+ketqat-benchmarks-resource-intelligence = "ketqat_benchmarks.resource_intelligence:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ketqat_benchmarks"]
