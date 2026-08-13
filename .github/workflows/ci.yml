@@ -23,6 +23,34 @@ jobs:
           python -m ketqat_benchmarks.decoder_comparison --distance 3 --rounds 3 --noise 0.02 --max-shots 2000 --output /tmp/cmp.json
           python scripts/assert_three_decoders.py /tmp/cmp.json
 
+  # Differential validation of the resource intelligence estimator (#13).
+  #
+  # The point of this job is that it *runs*. `qsharp` and `qualtran` are optional
+  # extras, and a suite that silently skips them reports a green tick for
+  # checking nothing -- which is worse than no check, because it looks like one.
+  # So the extras are installed explicitly and `--require` fails the job if a
+  # comparison it names came back UNAVAILABLE.
+  resource-intelligence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with: { python-version: "3.12" }
+      - name: Install with the independent estimators
+        run: python -m pip install -e ".[estimators]" pytest
+      - name: Scientific property tests
+        run: python -m pytest tests/test_resource_intelligence.py -q
+      - name: The differential comparisons must actually have run
+        run: |
+          python -m ketqat_benchmarks.resource_intelligence \
+            --require qdk qualtran \
+            --output /tmp/resource-intelligence.json
+      - name: Record the evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: resource-intelligence-differential
+          path: /tmp/resource-intelligence.json
+
   # The job above proves the science from a source checkout. This one proves the
   # *package*: build it, install only that into a fresh environment, and run the whole
   # thing with the repository nowhere on the path. #6 shipped because no job did this.
