@@ -198,3 +198,96 @@ def test_the_prefactor_disagreement_is_recorded_rather_than_resolved():
     assert "0.03" in comparison.definitional_difference
     assert "0.1" in comparison.definitional_difference
     assert FOWLER_PREFACTOR == 0.03
+
+
+# --------------------------------------------------------------------------
+# ketqat-web#340: the QDK package rename, and the trap it sets
+# --------------------------------------------------------------------------
+
+
+def test_the_reference_value_comes_from_qdk_not_from_a_constant():
+    """The comparison must ask QDK, not assert what QDK would say.
+
+    Before #340 this imported the estimator purely as an availability gate and
+    compared against integers written in the source, under
+    `reference_tool="qdk"`. The integers were right -- all five still match
+    1.31.0 -- but a constant cannot notice when the tool changes, so what was
+    labelled a differential comparison was KetQat against KetQat wearing QDK's
+    name.
+    """
+    pytest.importorskip("qdk")
+    from ketqat_benchmarks.resource_intelligence import (
+        _qdk_layout_overhead,
+        _resolve_qdk_estimator,
+        lattice_surgery_logical_qubits,
+    )
+
+    estimator, identity = _resolve_qdk_estimator()
+    assert estimator is not None, identity
+
+    # If the source ever reverts to constants, this fails: it drives the
+    # estimator at a point the old hardcoded table never contained.
+    for n in (5, 7, 13):
+        assert _qdk_layout_overhead(estimator, n) == lattice_surgery_logical_qubits(n), (
+            f"KetQat and QDK disagree at n={n}, which the five hardcoded points would not have shown"
+        )
+
+
+def test_the_supported_package_is_preferred_over_the_deprecated_shim():
+    """`qdk` is the implementation; `qsharp` re-exports it and warns.
+
+    Recording which one ran is the point. A report that could not say would be
+    unable to distinguish a current tool from a frozen one.
+    """
+    pytest.importorskip("qdk")
+    from ketqat_benchmarks.resource_intelligence import _resolve_qdk_estimator
+
+    _, identity = _resolve_qdk_estimator()
+    assert identity.startswith("qdk=="), (
+        f"resolved {identity}; the supported package must be preferred so the evidence names it"
+    )
+
+
+def test_every_qdk_comparison_records_the_artifact_that_produced_it():
+    pytest.importorskip("qdk")
+    from ketqat_benchmarks.resource_intelligence import _qdk_layout_comparison
+
+    comparisons = _qdk_layout_comparison()
+    assert comparisons, "the QDK comparison produced nothing at all"
+    for comparison in comparisons:
+        assert comparison.reference_tool_identity, (
+            f"{comparison.name} names no artifact. 'qdk' is the tool; the identity is which "
+            f"package and version actually computed the number."
+        )
+
+
+def test_a_frozen_package_must_not_read_as_current():
+    """The trap #340 exists for.
+
+    A deprecated package stops releasing. Any freshness signal that only asks
+    "is the pinned version the latest?" will answer yes forever, *because*
+    development moved elsewhere -- the check reports current precisely when the
+    tool has been abandoned.
+
+    So the comparison records the resolved package name, and this asserts the
+    recorded name is one this project still considers supported. If `qdk` is
+    itself renamed later, this fails rather than quietly following a shim.
+    """
+    pytest.importorskip("qdk")
+    from ketqat_benchmarks.resource_intelligence import _resolve_qdk_estimator
+
+    SUPPORTED = {"qdk"}
+    DEPRECATED = {"qsharp"}
+
+    _, identity = _resolve_qdk_estimator()
+    package = identity.split("==")[0]
+
+    assert package not in DEPRECATED, (
+        f"The differential comparison ran against {identity}, a package Microsoft has deprecated. "
+        f"Its version will freeze, and a latest-version check would then call it current forever."
+    )
+    assert package in SUPPORTED, (
+        f"The comparison ran against {package}, which is neither in the supported set {SUPPORTED} "
+        f"nor the known-deprecated set {DEPRECATED}. Decide which it is rather than letting an "
+        f"unrecognised package pass."
+    )

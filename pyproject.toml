@@ -31,7 +31,13 @@ decoders = [
 # but a CI job installs them explicitly and asserts the comparisons ran, so
 # "optional" never quietly becomes "skipped and reported green".
 estimators = [
-  "qsharp>=1.9",
+  # `qdk`, not `qsharp`. Microsoft renamed the package; `qsharp` is now a shim
+  # whose estimator module is `from qdk.estimator import *` and a deprecation
+  # notice. Both were verified to produce identical algorithmicLogicalQubits at
+  # 1.31.0 before this moved (ketqat-web#340), so this is a rename, not an
+  # estimator change. `qsharp` is deliberately not listed as well: naming both
+  # would leave the deprecated one looking like a supported input.
+  "qdk>=1.31.0",
   "qualtran>=0.4",
 ]
 

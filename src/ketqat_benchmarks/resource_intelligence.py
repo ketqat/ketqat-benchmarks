@@ -33,8 +33,11 @@ arranged to prevent.
 
 from __future__ import annotations
 
+import importlib
+import importlib.metadata
 import json
 import math
+
 from dataclasses import asdict, dataclass, field
 from typing import Any, Callable
 
@@ -131,6 +134,11 @@ class Comparison:
     name: str
     quantity: str
     reference_tool: str
+    #: The package and version that actually produced ``reference_value``, as
+    #: resolved at run time. "qdk" names the tool; this names the artifact.
+    #: Without it a report cannot say whether a number came from the supported
+    #: package or from the deprecated shim over it (ketqat-web#340).
+    reference_tool_identity: str | None = None
     ketqat_value: float | None = None
     reference_value: float | None = None
     status: str = "UNAVAILABLE"
@@ -148,6 +156,61 @@ class Comparison:
         return abs(self.ketqat_value - self.reference_value) <= tolerance * abs(self.reference_value)
 
 
+def _resolve_qdk_estimator() -> tuple[Any, str] | tuple[None, str]:
+    """The QDK estimator module, preferring the supported package.
+
+    Microsoft renamed `qsharp` to `qdk`. `qsharp/estimator/__init__.py` is now a
+    shim: a module docstring reading "Deprecated. Use qdk.estimator instead."
+    followed by ``from qdk.estimator import *`` and nothing else.
+
+    So the two are the *same implementation* reached by two names, which is why
+    migrating is safe: verified on 2026-08-15 at 1.31.0, both produce identical
+    algorithmicLogicalQubits at n = 4, 8, 16, 32 and 100. This is a rename and a
+    deprecation, not an estimator or scientific-model change.
+
+    `qdk` is tried first so the evidence names the supported package. `qsharp`
+    remains a fallback for an environment that predates the rename, and the
+    resolved identity is recorded either way -- a report that could not say
+    which one ran would be unable to distinguish a current tool from a frozen
+    one (ketqat-web#340).
+    """
+    for package in ("qdk", "qsharp"):
+        try:
+            module = importlib.import_module(f"{package}.estimator")
+        except Exception:  # noqa: BLE001 - any import failure means unavailable
+            continue
+        try:
+            version = importlib.metadata.version(package)
+        except Exception:  # noqa: BLE001
+            version = "unknown"
+        return module, f"{package}=={version}"
+    return None, "neither qdk nor qsharp is importable"
+
+
+def _qdk_layout_overhead(estimator: Any, logical_qubits: int) -> int:
+    """Ask QDK for the layout overhead, rather than asserting what it would say.
+
+    The previous version imported the estimator purely as an availability gate
+    and then compared against integers written in this file, under
+    ``reference_tool="qdk"``. Those integers were right -- all five still match
+    QDK 1.31.0 -- but a constant cannot notice when the tool changes, so the
+    comparison was really KetQat against KetQat wearing QDK's name.
+    """
+    result = estimator.LogicalCounts(
+        {
+            "numQubits": logical_qubits,
+            "tCount": 0,
+            "rotationCount": 0,
+            "rotationDepth": 0,
+            "cczCount": 0,
+            "ccixCount": 0,
+            "measurementCount": logical_qubits,
+        }
+    ).estimate()
+    data = result if isinstance(result, dict) else result.data()
+    return int(data["physicalCounts"]["breakdown"]["algorithmicLogicalQubits"])
+
+
 def _qdk_layout_comparison() -> list[Comparison]:
     """Layout overhead against Microsoft's QDK estimator.
 
@@ -155,35 +218,50 @@ def _qdk_layout_comparison() -> list[Comparison]:
     from the same formula, which makes it the one where a mismatch is a defect
     rather than a convention difference.
     """
-    results: list[Comparison] = []
-    try:
-        import qsharp.estimator  # noqa: F401
-    except Exception as error:  # pragma: no cover - exercised by the unavailable path
+    estimator, identity = _resolve_qdk_estimator()
+    if estimator is None:
         return [
             Comparison(
                 name="layout-overhead",
                 quantity="logical qubits including routing space",
                 reference_tool="qdk",
+                reference_tool_identity=identity,
                 status="UNAVAILABLE",
-                detail=f"qdk is not importable: {error}",
+                detail=f"The QDK estimator is not importable: {identity}",
             )
         ]
 
-    # The published formula, checked at the points KetQat's own comment claims
-    # were verified against qdk 1.30.0.
-    for n, expected in ((4, 15), (8, 25), (16, 45), (32, 81), (100, 230)):
+    results: list[Comparison] = []
+    for n in (4, 8, 16, 32, 100):
         ours = lattice_surgery_logical_qubits(n)
+        try:
+            theirs = _qdk_layout_overhead(estimator, n)
+        except Exception as error:  # noqa: BLE001
+            results.append(
+                Comparison(
+                    name=f"layout-overhead-n{n}",
+                    quantity="logical qubits including routing space",
+                    reference_tool="qdk",
+                    reference_tool_identity=identity,
+                    ketqat_value=float(ours),
+                    status="UNAVAILABLE",
+                    detail=f"The QDK estimator raised at n={n}: {error}",
+                )
+            )
+            continue
         results.append(
             Comparison(
                 name=f"layout-overhead-n{n}",
                 quantity="logical qubits including routing space",
                 reference_tool="qdk",
+                reference_tool_identity=identity,
                 ketqat_value=float(ours),
-                reference_value=float(expected),
-                status="AGREED" if ours == expected else "DIFFERED",
+                reference_value=float(theirs),
+                status="AGREED" if ours == theirs else "DIFFERED",
                 detail=(
-                    f"2n + ceil(sqrt(8n)) + 1 at n={n}. Beverland et al. (2022), the formula "
-                    "Microsoft's estimator implements."
+                    f"2n + ceil(sqrt(8n)) + 1 at n={n}, against algorithmicLogicalQubits computed "
+                    f"by {identity}. Beverland et al. (2022), the formula Microsoft's estimator "
+                    "implements."
                 ),
                 assumptions=["2D lattice-surgery layout", "rotated surface code"],
             )
