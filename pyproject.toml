@@ -16,13 +16,42 @@ decoders = [
   "sinter>=1.14",
   "pymatching>=2.2",
   "beliefmatching>=0.1",
-  # Every published tesseract-decoder is a pre-release (0.1.1.devNNNNNNNN); there has never
-  # been a stable one. `>=0.1` therefore resolves to nothing on pip 25 and earlier, which
-  # excludes pre-releases from a specifier that does not mention one. Newer pip falls back
-  # to pre-releases when no stable version exists, which is why this was invisible: the
-  # editable install worked on machines that already had it, and the first clean install on
-  # a runner failed outright. A dev-segment specifier is the accurate statement.
-  "tesseract-decoder>=0.1.1.dev0",
+  # Pinned exactly, not floated. Every published tesseract-decoder is a pre-release
+  # (0.1.1.devNNNNNNNN); there has never been a stable one, so any specifier here has to
+  # name a dev segment -- `>=0.1` resolves to nothing on pip 25 and earlier, which excludes
+  # pre-releases from a specifier that does not mention one.
+  #
+  # The floor-only form this replaces (`>=0.1.1.dev0`) is what killed ketqat-sdk's clean
+  # room (ketqat/ketqat-sdk#261, run 33408917798) with SIGILL, exit 132. Upstream's
+  # prerelease.yml lost its `--config=wheel` across four rewrites on 2026-08-24/25, so every
+  # Linux wheel published from 08-25 onward falls through to `-march=native` in //src:BUILD
+  # and is tuned to whatever CPU built it. dev20260827012621 carries 85 %zmm operands and
+  # AVX-512 mask registers inside SimplexDecoder::decode_to_errors and build_det_orders --
+  # with 0 `cpuid` instructions and 0 IFUNC symbols in the .so, so there is no runtime
+  # dispatch and no fallback path. Any CPU missing a subset it needs, GitHub-hosted runners
+  # included, dies on it. Nothing here changed; a third party's build did, underneath a
+  # floating dependency.
+  #
+  # dev20260822020007 is the newest wheel built the portable way (`-march=x86-64`): no
+  # AVX-512, no AVX2 and no BMI2 anywhere in its disassembly, so it runs on any x86-64. It
+  # is verified to import and to complete this repository's three-decoder comparison in a
+  # `--platform linux/amd64` container whose CPU exposes no AVX flags at all -- strictly
+  # weaker than a runner. dev20260825222457 also happens to disassemble AVX-512-free, but it
+  # is a -march=native build that landed on a builder without it: accidental, unrepeatable.
+  #
+  # Bump this only after disassembling the replacement the same way -- `objdump -d` the .so
+  # and require no %zmm, or a nonzero `cpuid` count proving it dispatches. Until upstream
+  # restores --config=wheel, each new dev wheel is a coin flip. A benchmark repository has a
+  # second reason to pin: a moving decoder means the numbers in results/ were produced
+  # against something no one can name.
+  #
+  # The cost, stated rather than left to be discovered: upstream publishes no sdist, and
+  # this version ships cp311/cp312/cp313 wheels only, so `.[decoders]` no longer installs on
+  # 3.10 or 3.14. Little is lost. Upstream dropped 3.10 after dev20260802231159 (08-02), so
+  # 3.10 was already resolving to a wheel three weeks stale; and every 3.14 wheel in
+  # existence is from the -march=native regime, so there was no safe build to pin 3.14 to.
+  # Both now fail as a resolver error naming the interpreter, instead of as a SIGILL.
+  "tesseract-decoder==0.1.1.dev20260822020007",
   "numpy>=1.24",
 ]
 
