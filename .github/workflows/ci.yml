@@ -74,6 +74,10 @@ jobs:
         run: |
           python -m venv /tmp/cleanroom
           /tmp/cleanroom/bin/pip install --quiet "$(ls dist-release/*.whl)[decoders]"
+          # --quiet hides the resolution, and the resolution is the thing that breaks:
+          # the decoder wheels come from a third party and move under us. Record what
+          # was actually installed, so a future failure is one log read from diagnosed.
+          /tmp/cleanroom/bin/pip list --format=freeze
       - name: Run from the install, with the checkout off the path
         run: |
           cd /tmp

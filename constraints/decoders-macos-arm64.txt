@@ -6,4 +6,4 @@ scipy==1.17.1
 scipy-openblas32==0.3.34.0.0
 sinter==1.16.0
 stim==1.16.0
-tesseract_decoder==0.1.1.dev20260728064717
+tesseract_decoder==0.1.1.dev20260822020007

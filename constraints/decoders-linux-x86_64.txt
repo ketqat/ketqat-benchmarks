@@ -1,0 +1,21 @@
+# The Linux counterpart to decoders-macos-arm64.txt: the decoder environment this
+# repository's three-decoder comparison was last verified against on x86-64.
+#
+# Verified 2026-09-01 in `docker run --platform linux/amd64 python:3.12-slim` on a guest
+# CPU exposing popcnt and sse4_2 and no AVX flags of any kind -- strictly weaker than a
+# GitHub-hosted runner, so a pass here is a pass there. `pytest tests -q` (45 passed,
+# 4 skipped), the comparison, and the gate all ran: 3 decoders on shared sample
+# d2de6a81a374db0d, is_demo False, publishable True.
+#
+# The tesseract_decoder pin is not cosmetic and is duplicated in pyproject.toml, which
+# carries the full reason: every Linux wheel published from 2026-08-25 onward is built
+# `-march=native` with no runtime dispatch, and SIGILLs on any CPU missing the AVX-512
+# subset its builder happened to have.
+beliefmatching==0.2.0
+networkx==3.6.1
+numpy==2.2.6
+PyMatching==2.4.0
+scipy==1.18.1
+sinter==1.16.0
+stim==1.16.0
+tesseract_decoder==0.1.1.dev20260822020007
