@@ -12,7 +12,6 @@ only the first one is about what a user gets.
 
 from __future__ import annotations
 
-import json
 import subprocess
 import sys
 import zipfile

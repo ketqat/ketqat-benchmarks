@@ -1,8 +1,6 @@
 """The comparison must compare decoders, not samples — and prove it."""
 from __future__ import annotations
 
-import math
-
 import pytest
 
 from ketqat_benchmarks.decoder_comparison import (
@@ -55,7 +53,7 @@ def test_paired_ci_driven_by_discordant_counts() -> None:
 
 
 def test_abstention_cannot_improve_rank() -> None:
-    stim = pytest.importorskip("stim")  # noqa: F841
+    pytest.importorskip("stim")
     report = run_comparison(3, 3, 0.02, 400, seed=11, with_timing=False)
     ran = [d for d in report["decoders"] if d["available"]]
     if len(ran) < 2:
